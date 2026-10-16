@@ -1,0 +1,17 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.log
+.DS_Store
+Thumbs.db
+
+# Реальні дані: експорти, бекапи, пакети синхро — ніколи не комітити
+*.journal.json
+*.journal.enc
+*.journal-backup
+*.journal-sync
+*.journal-backup.json
+journal-*.json
+journal-*.txt
+journal-*.csv
