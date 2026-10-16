@@ -3,6 +3,7 @@ import { t } from '../../i18n/uk';
 import type { Category } from '../../domain/types';
 import { createEntry } from '../../db/repo';
 import { Header } from '../components/Header';
+import { Icon } from '../components/Icon';
 import { CategoryGrid } from '../components/CategoryGrid';
 import { EntryDetails, draftIsEmpty, draftToInput, emptyDraft, type EntryDraft } from '../components/EntryDetails';
 import { catMap, db, showToast } from '../store';
@@ -90,7 +91,7 @@ export function CaptureScreen() {
               <span class="grow">{cat.name}</span>
               {draft.isTask && <span class="pill task">задача</span>}
               <button class="icon-btn small" aria-label={t.common.cancel} onClick={() => patch({ categoryId: null, fields: {} })}>
-                ×
+                <Icon name="close" size={18} />
               </button>
             </div>
           ) : (

@@ -3,6 +3,7 @@ import { t } from '../../i18n/uk';
 import type { Category, Entry } from '../../domain/types';
 import { fmtShort, fmtTime } from '../../domain/time';
 import { isOverdue } from '../../domain/tasks';
+import { Icon } from './Icon';
 
 const LONG_PRESS_MS = 450;
 
@@ -81,12 +82,12 @@ export function EntryRow({
           if (ev.key === 'Enter') onOpen();
         }}
       >
-        <span class="emoji entry-emoji" aria-hidden="true">
-          {cat?.emoji ?? '•'}
-        </span>
+        <span class="entry-time">{fmtTime(e.eventAt)}</span>
         <div class="entry-body">
           <div class="entry-meta">
-            <span class="entry-time">{fmtTime(e.eventAt)}</span>
+            <span class="emoji" aria-hidden="true">
+              {cat?.emoji ?? '•'}
+            </span>
             <span class="entry-cat">{cat?.name ?? '—'}</span>
             <TaskBadge e={e} now={now} />
           </div>
@@ -103,7 +104,7 @@ export function EntryRow({
         </div>
       </div>
       <button class="icon-btn entry-more" aria-label="Дії" aria-expanded={actionsOpen} onClick={() => onActions(!actionsOpen)}>
-        ⋯
+        <Icon name="more" />
       </button>
       {actionsOpen && (
         <div class="entry-actions">

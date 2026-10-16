@@ -2,6 +2,7 @@ import { t } from '../../i18n/uk';
 import type { Entry, Priority } from '../../domain/types';
 import { fromLocalInput, toLocalInput } from '../../domain/time';
 import { parseTags } from '../../db/repo';
+import { Icon } from './Icon';
 
 /** Стан форми запису (і для нового, і для редагування). Дати — рядки datetime-local. */
 export interface EntryDraft {
@@ -79,7 +80,7 @@ export function EntryDetails({ draft, onChange }: { draft: EntryDraft; onChange:
               />
               {draft.dueAt && (
                 <button class="icon-btn" aria-label={t.common.cancel} onClick={() => onChange({ dueAt: '' })}>
-                  ×
+                  <Icon name="close" size={18} />
                 </button>
               )}
             </div>

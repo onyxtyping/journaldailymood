@@ -5,6 +5,7 @@ import { groupPending } from '../../domain/tasks';
 import { fmtShort } from '../../domain/time';
 import { setTaskStatus } from '../../db/repo';
 import { Header } from '../components/Header';
+import { Icon } from '../components/Icon';
 import { catMap, db, entries, go, now, showToast } from '../store';
 
 function TaskRow({ e, overdue }: { e: Entry; overdue: boolean }) {
@@ -25,7 +26,7 @@ function TaskRow({ e, overdue }: { e: Entry; overdue: boolean }) {
     <li class={`task-row ${overdue ? 'overdue' : ''} prio-${e.priority ?? 'normal'}`} style={{ '--cat': cat?.color ?? '#888' }}>
       <div class="task-line">
         <button class="check-btn" aria-label={t.common.close} title={t.common.close} onClick={() => void close('done')}>
-          ✓
+          <Icon name="check" size={24} />
         </button>
         <button class="task-body" aria-expanded={open} onClick={() => setOpen(!open)}>
           <div class="entry-meta">
