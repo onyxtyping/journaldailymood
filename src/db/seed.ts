@@ -1,4 +1,4 @@
-import type { Category, FieldDef } from '../domain/types';
+import type { Category, CategoryKind, FieldDef } from '../domain/types';
 
 /**
  * Стартовий набір категорій.
@@ -126,6 +126,20 @@ const DEFS: SeedDef[] = [
   ['💡', 'Ідея / покращення', G.other, false, []],
 ];
 
+/** Роль для підсумків за номером seed-категорії (1-based). */
+export const SEED_KINDS: Record<number, CategoryKind> = {
+  6: 'fault',
+  14: 'fault',
+  16: 'fuel',
+  17: 'trip',
+  18: 'propIn',
+  19: 'propOut',
+  20: 'propOff',
+};
+
+/** «Власна задача / нагадування» — куди падають швидкі задачі з чекпоінту. */
+export const QUICK_TASK_SEED = 2;
+
 export function seedId(n: number): string {
   return `c0ffee00-0000-4000-8000-${n.toString(16).padStart(12, '0')}`;
 }
@@ -133,6 +147,7 @@ export function seedId(n: number): string {
 export function seedCategories(): Category[] {
   return DEFS.map(([emoji, name, group, defaultIsTask, fieldSchema], i) => ({
     id: seedId(i + 1),
+    ...(SEED_KINDS[i + 1] ? { kind: SEED_KINDS[i + 1] } : {}),
     name,
     emoji,
     group,

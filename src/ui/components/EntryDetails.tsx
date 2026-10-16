@@ -1,8 +1,10 @@
 import { t } from '../../i18n/uk';
-import type { Entry, Priority } from '../../domain/types';
+import type { Category, Entry, Priority } from '../../domain/types';
 import { fromLocalInput, toLocalInput } from '../../domain/time';
 import { parseTags } from '../../db/repo';
 import { Icon } from './Icon';
+import { CategoryFields } from './CategoryFields';
+import { coerceFields, isEmptyValue } from '../../domain/fields';
 
 /** Стан форми запису (і для нового, і для редагування). Дати — рядки datetime-local. */
 export interface EntryDraft {
@@ -38,15 +40,19 @@ export function draftFromEntry(e: Entry): EntryDraft {
 }
 
 export function draftIsEmpty(d: EntryDraft): boolean {
-  return !d.text.trim() && !d.tags.trim() && !d.dueAt && !d.eventAt && !Object.keys(d.fields).length;
+  return !d.text.trim() && !d.tags.trim() && !d.dueAt && !d.eventAt && !hasFieldValues(d.fields);
 }
 
-export function draftToInput(d: EntryDraft) {
+export function hasFieldValues(fields: Record<string, unknown>): boolean {
+  return Object.values(fields).some((v) => !isEmptyValue(v) && !(typeof v === 'string' && !v.trim()));
+}
+
+export function draftToInput(d: EntryDraft, cat?: Category) {
   return {
     categoryId: d.categoryId!,
     text: d.text,
     tags: parseTags(d.tags),
-    fields: d.fields,
+    fields: coerceFields(cat, d.fields),
     eventAt: fromLocalInput(d.eventAt),
     isTask: d.isTask,
     dueAt: d.isTask ? fromLocalInput(d.dueAt) : undefined,
@@ -56,9 +62,10 @@ export function draftToInput(d: EntryDraft) {
 
 const PRIORITIES: Priority[] = ['low', 'normal', 'high'];
 
-export function EntryDetails({ draft, onChange }: { draft: EntryDraft; onChange: (patch: Partial<EntryDraft>) => void }) {
+export function EntryDetails({ draft, cat, onChange }: { draft: EntryDraft; cat?: Category; onChange: (patch: Partial<EntryDraft>) => void }) {
   return (
     <div class="details-body">
+      {cat && <CategoryFields cat={cat} values={draft.fields} onChange={(key, value) => onChange({ fields: { ...draft.fields, [key]: value } })} />}
       <label class="toggle-row">
         <input
           type="checkbox"

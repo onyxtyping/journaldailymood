@@ -2,13 +2,24 @@ import type { JournalDB } from '../db/schema';
 import { SCHEMA_VERSION } from '../db/schema';
 import { normalizeCategory, normalizeEntry, normalizeNamed } from '../db/normalize';
 import { getSetting, putIncoming } from '../db/repo';
+import { v2AddSeedKind } from '../db/migrations';
 import { SYNC_TABLES, type SyncMeta, type SyncTable } from '../domain/types';
 
 export const BACKUP_FORMAT = 'journal-backup';
 export const BACKUP_EXT = '.journal-backup';
 
 /** Налаштування, що належать саме цьому пристрою: не експортуються і не перезаписуються імпортом. */
-export const DEVICE_LOCAL_KEYS = new Set(['deviceId', 'deviceName', 'seq', 'seeded', 'persisted', 'lastBackupAt']);
+export const DEVICE_LOCAL_KEYS = new Set([
+  'deviceId',
+  'deviceName',
+  'seq',
+  'seeded',
+  'persisted',
+  'persistAsked',
+  'lastBackupAt',
+  'lastCheckpointAt',
+  'lastTodayShownDay',
+]);
 
 export type BackupData = Record<SyncTable, SyncMeta[]> & { settings: Record<string, unknown> };
 
@@ -62,7 +73,9 @@ export function serializeBackup(b: BackupFile): string {
  * Кожна зміна схеми БД, що змінює форму даних, додає сюди крок і тест.
  */
 export type BackupMigration = (data: any) => any;
-export const BACKUP_MIGRATIONS: Record<number, BackupMigration> = {};
+export const BACKUP_MIGRATIONS: Record<number, BackupMigration> = {
+  1: (d) => ({ ...d, categories: Array.isArray(d?.categories) ? d.categories.map((c: any) => (c && c.id ? v2AddSeedKind(c) : c)) : d?.categories }),
+};
 
 export function migrateBackup(raw: any, migrations: Record<number, BackupMigration> = BACKUP_MIGRATIONS, target = SCHEMA_VERSION): any {
   let v = raw.schemaVersion;

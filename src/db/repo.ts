@@ -1,5 +1,6 @@
 import type { JournalDB } from './schema';
-import type { Entry, Priority, SyncMeta, SyncTable, TaskStatus } from '../domain/types';
+import type { Category, Entry, Priority, SyncMeta, SyncTable, TaskStatus } from '../domain/types';
+import { DIRECTORY_OF } from '../domain/fields';
 import { uuid } from '../domain/uuid';
 import { seedCategories } from './seed';
 
@@ -110,6 +111,7 @@ export async function createEntry(db: JournalDB, input: NewEntryInput): Promise<
   };
   if (input.isTask && input.dueAt) e.dueAt = input.dueAt;
   if (input.isTask && input.priority) e.priority = input.priority;
+  e.fields = cleanFields(e.fields);
   return putSynced(db, 'entries', e);
 }
 
@@ -118,6 +120,7 @@ export async function updateEntry(db: JournalDB, id: string, patch: Partial<Entr
   if (!cur) return undefined;
   const next: Entry = { ...cur, ...patch };
   if (patch.tags) next.tags = cleanTags(patch.tags);
+  if (patch.fields) next.fields = cleanFields(patch.fields);
   for (const k of Object.keys(next) as (keyof Entry)[]) if (next[k] === undefined) delete next[k];
   return putSynced(db, 'entries', next);
 }
@@ -142,11 +145,88 @@ export async function makeTask(db: JournalDB, id: string): Promise<void> {
   await updateEntry(db, id, { isTask: true, status: 'open', closedAt: undefined, closeNote: undefined });
 }
 
+/* ---------- Довідники ---------- */
+
+export type DirectoryTable = 'people' | 'vehicles' | 'items' | 'locations';
+
+/** Нові значення полів-довідників автоматично додаються в довідник. */
+export async function rememberDirectoryValues(db: JournalDB, cat: Category | undefined, fields: Record<string, unknown>): Promise<void> {
+  if (!cat) return;
+  for (const def of cat.fieldSchema) {
+    const table = DIRECTORY_OF[def.type];
+    const raw = fields[def.key];
+    if (!table || typeof raw !== 'string' || !raw.trim()) continue;
+    await addDirectoryName(db, table, raw);
+  }
+}
+
+export async function addDirectoryName(db: JournalDB, table: DirectoryTable, name: string, extra: Record<string, string> = {}): Promise<void> {
+  const value = name.trim();
+  if (!value) return;
+  const low = value.toLowerCase();
+  const all = (await db.table(table).toArray()) as (SyncMeta & { name: string })[];
+  const existing = all.find((r) => r.name.trim().toLowerCase() === low);
+  if (existing && !existing.deletedAt) return;
+  // Якщо значення колись видалили, а тепер ввели знову — відновлюємо той самий запис.
+  const rec = existing ? { ...existing, ...extra, name: value, deletedAt: undefined } : { id: uuid(), name: value, ...extra, updatedAt: 0, deviceId };
+  if (existing) delete (rec as SyncMeta).deletedAt;
+  await putSynced(db, table, rec);
+}
+
+export async function saveNamed(db: JournalDB, table: DirectoryTable, rec: SyncMeta & { name: string }): Promise<void> {
+  await putSynced(db, table, { ...rec, name: rec.name.trim() });
+}
+
+export async function softDeleteNamed(db: JournalDB, table: DirectoryTable, id: string): Promise<void> {
+  const cur = await db.table(table).get(id);
+  if (cur) await putSynced(db, table, { ...cur, deletedAt: Date.now() });
+}
+
+/* ---------- Категорії ---------- */
+
+export async function saveCategory(db: JournalDB, c: Category): Promise<Category> {
+  return putSynced(db, 'categories', c);
+}
+
+/** Категорію з записами лише архівуємо; порожню — видаляємо через tombstone. */
+export async function removeCategory(db: JournalDB, id: string): Promise<'archived' | 'deleted'> {
+  const cur = await db.categories.get(id);
+  if (!cur) return 'deleted';
+  const used = (await db.entries.where('categoryId').equals(id).count()) > 0;
+  if (used) {
+    await putSynced(db, 'categories', { ...cur, archived: true });
+    return 'archived';
+  }
+  await putSynced(db, 'categories', { ...cur, deletedAt: Date.now() });
+  return 'deleted';
+}
+
+/** Новий порядок категорій: order = 10, 20, 30… Пишуться лише ті, що змінились. */
+export async function reorderCategories(db: JournalDB, ids: string[]): Promise<void> {
+  for (let i = 0; i < ids.length; i++) {
+    const c = await db.categories.get(ids[i]);
+    const order = (i + 1) * 10;
+    if (c && c.order !== order) await putSynced(db, 'categories', { ...c, order });
+  }
+}
+
 export function cleanTags(tags: string[]): string[] {
   const out: string[] = [];
   for (const raw of tags) {
     const t = raw.trim().replace(/^#/, '').toLowerCase();
     if (t && !out.includes(t)) out.push(t);
+  }
+  return out;
+}
+
+/** Прибирає порожні значення полів і зайві пробіли. */
+export function cleanFields(fields: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    if (v == null || (typeof v === 'number' && Number.isNaN(v))) continue;
+    if (typeof v === 'string') {
+      if (v.trim()) out[k] = v.trim();
+    } else out[k] = v;
   }
   return out;
 }

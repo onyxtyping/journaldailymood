@@ -42,8 +42,13 @@ export interface FieldDef {
   options?: string[];
 }
 
+/** Роль категорії для числових підсумків у «Вибірці». */
+export type CategoryKind = 'fuel' | 'trip' | 'propIn' | 'propOut' | 'propOff' | 'fault';
+export const CATEGORY_KINDS: CategoryKind[] = ['fuel', 'trip', 'propIn', 'propOut', 'propOff', 'fault'];
+
 export interface Category extends SyncMeta {
   name: string;
+  kind?: CategoryKind;
   emoji: string;
   color: string;
   group: string;

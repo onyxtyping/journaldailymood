@@ -6,9 +6,11 @@ import { fmtShort } from '../../domain/time';
 import { setTaskStatus } from '../../db/repo';
 import { Header } from '../components/Header';
 import { Icon } from '../components/Icon';
+import { taskIcs } from '../../io/ics';
+import { shareOrDownload } from '../../io/share';
 import { catMap, db, entries, go, now, showToast } from '../store';
 
-function TaskRow({ e, overdue }: { e: Entry; overdue: boolean }) {
+export function TaskRow({ e, overdue }: { e: Entry; overdue: boolean }) {
   const [open, setOpen] = useState(false);
   const [note, setNote] = useState('');
   const cat = catMap.value.get(e.categoryId);
@@ -56,6 +58,11 @@ function TaskRow({ e, overdue }: { e: Entry; overdue: boolean }) {
             <button class="btn" onClick={() => void close('cancelled', note)}>
               {t.task.cancelTask}
             </button>
+            {e.dueAt != null && (
+              <button class="btn" onClick={() => void shareOrDownload(`journal-task-${e.id.slice(0, 8)}.ics`, taskIcs(e, cat), 'text/calendar')}>
+                {t.calendar.addTask}
+              </button>
+            )}
             <button class="btn ghost" onClick={() => go('edit', e.id)}>
               {t.edit.title}
             </button>

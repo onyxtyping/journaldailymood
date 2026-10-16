@@ -10,6 +10,13 @@ const PATHS = {
   more: 'M5 12h.01M12 12h.01M19 12h.01',
   check: 'M5 12.5l4.5 4.5L19 7.5',
   close: 'M6 6l12 12M18 6 6 18',
+  calendar: 'M5 5h14v15H5zM5 10h14M9 3v4M15 3v4',
+  doc: 'M7 3h7l5 5v13H7zM14 3v5h5M10 13h6M10 17h6',
+  drag: 'M5 9h14M5 15h14',
+  plus: 'M12 5v14M5 12h14',
+  up: 'M6 15l6-6 6 6',
+  down: 'M6 9l6 6 6-6',
+  next: 'M9 6l6 6-6 6',
 } as const;
 
 export type IconName = keyof typeof PATHS;

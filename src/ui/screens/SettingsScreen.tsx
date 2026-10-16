@@ -14,7 +14,10 @@ import {
 } from '../../io/backup';
 import { pickFile, shareOrDownload } from '../../io/share';
 import { Header } from '../components/Header';
-import { categories, db, entries, saveSetting, setting, showToast, theme } from '../store';
+import { Icon } from '../components/Icon';
+import { checkpointsIcs } from '../../io/ics';
+import { DEFAULT_CHECKPOINTS, normalizeTimes } from '../../domain/checkpoints';
+import { activeCategories, categories, db, directories, entries, go, saveSetting, setting, showToast, theme } from '../store';
 
 function fmtBytes(n: number): string {
   if (n < 1024) return `${n} Б`;
@@ -32,6 +35,8 @@ export function SettingsScreen() {
     void navigator.storage?.estimate?.().then((e) => setUsage(e.usage ?? null));
   }, [entries.value.length]);
 
+  const times = normalizeTimes(setting<string[]>('checkpointTimes', DEFAULT_CHECKPOINTS));
+  const saveTimes = (list: string[]) => saveSetting('checkpointTimes', normalizeTimes(list));
   const persisted = setting<boolean | null>('persisted', null);
   const lastBackupAt = setting<number | null>('lastBackupAt', null);
 
@@ -102,6 +107,55 @@ export function SettingsScreen() {
               </button>
             ))}
           </div>
+        </section>
+
+        <section class="card">
+          <h2>{t.settings.data}</h2>
+          <button class="link-row" onClick={() => go('categories')}>
+            <span class="grow">{t.settings.categories}</span>
+            <span class="muted">{activeCategories.value.length}</span>
+            <Icon name="next" size={18} />
+          </button>
+          {(['people', 'vehicles', 'items', 'locations'] as const).map((d) => (
+            <button key={d} class="link-row" onClick={() => go('directory', d)}>
+              <span class="grow">{t.dirs[d]}</span>
+              <span class="muted">{directories[d].value.length}</span>
+              <Icon name="next" size={18} />
+            </button>
+          ))}
+        </section>
+
+        <section class="card">
+          <h2>{t.settings.checkpoints}</h2>
+          <p class="muted small">{t.settings.checkpointsHint}</p>
+          <div class="times">
+            {times.map((tm, i) => (
+              <div key={`${i}-${tm}`} class="time-chip">
+                <input
+                  type="time"
+                  value={tm}
+                  onChange={(e) => {
+                    const v = (e.target as HTMLInputElement).value;
+                    void saveTimes(times.map((x, j) => (j === i ? v : x)));
+                  }}
+                />
+                <button class="icon-btn small" aria-label={t.common.delete} onClick={() => void saveTimes(times.filter((_, j) => j !== i))}>
+                  <Icon name="close" size={16} />
+                </button>
+              </div>
+            ))}
+            <button class="btn small" onClick={() => void saveTimes([...times, '18:00'])}>
+              + {t.settings.addTime}
+            </button>
+          </div>
+          <p class="muted small">{t.calendar.hint}</p>
+          <button
+            class="btn"
+            disabled={!times.length}
+            onClick={() => void shareOrDownload('journal-checkpoints.ics', checkpointsIcs(times), 'text/calendar')}
+          >
+            {t.calendar.addCheckpoints}
+          </button>
         </section>
 
         <section class="card">

@@ -4,6 +4,7 @@ import type { Category, Entry } from '../../domain/types';
 import { fmtShort, fmtTime } from '../../domain/time';
 import { isOverdue } from '../../domain/tasks';
 import { Icon } from './Icon';
+import { fieldsShort } from '../../domain/fields';
 
 const LONG_PRESS_MS = 450;
 
@@ -40,6 +41,7 @@ export function EntryRow({
   onDelete: () => void;
   onMakeTask: () => void;
 }) {
+  const short = fieldsShort(e, cat);
   const timer = useRef<ReturnType<typeof setTimeout>>();
   const start = useRef<{ x: number; y: number } | null>(null);
   const longFired = useRef(false);
@@ -92,6 +94,7 @@ export function EntryRow({
             <TaskBadge e={e} now={now} />
           </div>
           {e.text && <div class="entry-text">{e.text}</div>}
+          {short && <div class={e.text ? 'entry-fields' : 'entry-text'}>{short}</div>}
           {e.tags.length > 0 && (
             <div class="entry-tags">
               {e.tags.map((tag) => (

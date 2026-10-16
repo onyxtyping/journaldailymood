@@ -6,10 +6,13 @@ const TABS: { name: ScreenName; icon: IconName; label: string }[] = [
   { name: 'capture', icon: 'pen', label: t.nav.capture },
   { name: 'journal', icon: 'list', label: t.nav.journal },
   { name: 'pending', icon: 'clock', label: t.nav.pending },
+  { name: 'today', icon: 'calendar', label: t.nav.today },
+  { name: 'report', icon: 'doc', label: t.nav.report },
 ];
 
 export function TabBar() {
-  const cur = route.value.name === 'edit' ? 'journal' : route.value.name;
+  const r = route.value.name;
+  const cur = r === 'edit' ? 'journal' : r === 'checkpoint' ? 'capture' : r;
   const overdue = overdueCount.value;
   return (
     <nav class="tabbar" aria-label="Навігація">

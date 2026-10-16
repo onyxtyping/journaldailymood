@@ -1,4 +1,4 @@
-import type { Category, Entry, FieldDef, Priority, TaskStatus } from '../domain/types';
+import { CATEGORY_KINDS, type Category, type Entry, type FieldDef, type Priority, type TaskStatus } from '../domain/types';
 
 /**
  * Нормалізатори приводять запис будь-якої давнини до поточної форми:
@@ -63,6 +63,7 @@ export function normalizeCategory(raw: any): Category {
     fieldSchema: Array.isArray(raw.fieldSchema) ? raw.fieldSchema.map(normalizeFieldDef) : [],
   };
   if (num(raw.deletedAt) == null) delete c.deletedAt;
+  if (!CATEGORY_KINDS.includes(raw.kind)) delete c.kind;
   return c;
 }
 

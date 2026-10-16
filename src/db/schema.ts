@@ -1,4 +1,5 @@
 import Dexie, { type Table, type Transaction } from 'dexie';
+import { v2AddSeedKind } from './migrations';
 import type { Category, Entry, HistoryRecord, Item, Location, Peer, Person, SettingRow, Vehicle } from '../domain/types';
 
 export const DB_NAME = 'journal';
@@ -29,6 +30,19 @@ export const DB_VERSIONS: DbVersion[] = [
       peers: 'deviceId',
       settings: 'key',
     },
+  },
+  {
+    // Ролі категорій для підсумків. Індекси не змінюються.
+    version: 2,
+    stores: {},
+    upgrade: (tx) =>
+      tx
+        .table('categories')
+        .toCollection()
+        .modify((c: any) => {
+          const next = v2AddSeedKind(c);
+          if (next.kind) c.kind = next.kind;
+        }),
   },
 ];
 

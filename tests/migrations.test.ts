@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { DB_VERSIONS, JournalDB, SCHEMA_VERSION } from '../src/db/schema';
 import { normalizeCategory, normalizeEntry } from '../src/db/normalize';
-import { BackupError, migrateBackup } from '../src/io/backup';
+import { BackupError, migrateBackup, parseBackup } from '../src/io/backup';
+import { seedCategories, seedId } from '../src/db/seed';
 import { freshDb } from './helpers';
 
 describe('схема IndexedDB', () => {
@@ -46,6 +47,42 @@ describe('схема IndexedDB', () => {
     expect(e?.text).toBe('старий');
     expect(e?.fields).toEqual({ migrated: true });
     next.close();
+  });
+});
+
+describe('міграція v1 → v2 (ролі категорій)', () => {
+  it('Dexie: seed-категорії отримують kind, власні й уже задані — без змін', async () => {
+    const name = `v2-${Date.now()}`;
+    const v1 = new JournalDB(name, DB_VERSIONS.slice(0, 1));
+    const fuel = { ...seedCategories()[15] } as any;
+    delete fuel.kind;
+    await v1.categories.bulkPut([
+      fuel,
+      normalizeCategory({ id: 'custom', name: 'Своя' }),
+      normalizeCategory({ id: seedId(6), name: 'Змінена', kind: 'trip' }),
+    ]);
+    v1.close();
+
+    const v2 = new JournalDB(name, DB_VERSIONS.slice(0, 2));
+    expect((await v2.categories.get(seedId(16)))?.kind).toBe('fuel');
+    expect((await v2.categories.get('custom'))?.kind).toBeUndefined();
+    expect((await v2.categories.get(seedId(6)))?.kind).toBe('trip');
+    v2.close();
+  });
+
+  it('бекап версії 1 імпортується з ролями категорій', () => {
+    const f = parseBackup(
+      JSON.stringify({
+        format: 'journal-backup',
+        schemaVersion: 1,
+        exportedAt: 1,
+        deviceId: 'd',
+        deviceName: '',
+        data: { categories: [{ id: seedId(18), name: 'Майно отримано' }], entries: [] },
+      }),
+    );
+    expect(f.schemaVersion).toBe(SCHEMA_VERSION);
+    expect(f.data.categories[0]).toMatchObject({ id: seedId(18), kind: 'propIn' });
   });
 });
 

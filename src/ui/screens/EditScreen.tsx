@@ -2,7 +2,9 @@ import { useState } from 'preact/hooks';
 import { t } from '../../i18n/uk';
 import type { TaskStatus } from '../../domain/types';
 import { fmtDateTime } from '../../domain/time';
-import { restoreEntry, setTaskStatus, softDeleteEntry, updateEntry } from '../../db/repo';
+import { rememberDirectoryValues, restoreEntry, setTaskStatus, softDeleteEntry, updateEntry } from '../../db/repo';
+import { taskIcs } from '../../io/ics';
+import { shareOrDownload } from '../../io/share';
 import { Header } from '../components/Header';
 import { EntryDetails, draftFromEntry, draftToInput, type EntryDraft } from '../components/EntryDetails';
 import { groupCategories } from '../components/CategoryGrid';
@@ -28,7 +30,7 @@ export function EditScreen({ id }: { id: string }) {
   const selectable = categories.value.filter((c) => !c.deletedAt && (!c.archived || c.id === entry.categoryId));
 
   const save = async () => {
-    const input = draftToInput(draft);
+    const input = draftToInput(draft, cat);
     await updateEntry(db, entry.id, {
       categoryId: input.categoryId,
       text: input.text.trim(),
@@ -41,6 +43,7 @@ export function EditScreen({ id }: { id: string }) {
       ...(entry.isTask && entry.status !== 'open' ? { closeNote: note.trim() || undefined } : {}),
       ...(input.isTask && !entry.isTask ? { status: 'open' as TaskStatus } : {}),
     });
+    await rememberDirectoryValues(db, cat, input.fields);
     showToast(t.capture.saved);
     back();
   };
@@ -92,7 +95,7 @@ export function EditScreen({ id }: { id: string }) {
           }}
         />
 
-        <EntryDetails draft={draft} onChange={patch} />
+        <EntryDetails draft={draft} cat={cat} onChange={patch} />
 
         {entry.isTask && (
           <div class="field">
@@ -113,6 +116,11 @@ export function EditScreen({ id }: { id: string }) {
               />
             )}
             {entry.closedAt && <span class="muted small">{fmtDateTime(entry.closedAt)}</span>}
+            {entry.status === 'open' && entry.dueAt && (
+              <button class="btn" onClick={() => void shareOrDownload(`journal-task-${entry.id.slice(0, 8)}.ics`, taskIcs(entry, cat), 'text/calendar')}>
+                {t.calendar.addTask}
+              </button>
+            )}
           </div>
         )}
 
